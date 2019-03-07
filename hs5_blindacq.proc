@@ -1,0 +1,31 @@
+Proc AE350_hs5_blindacq
+
+;AE350 Lab1 hs5 blindacq
+;none
+;Alex Petrov
+;usage example
+local stat=0
+
+@command.ccsds.terminate				;place FOP into terminate
+
+@command.ccsds.set_bypass value=1  			;set bypass enable 
+
+stat=/sc.start_rts rtsid=1					;start transponder
+wait 160 until (hstlmSrc.totalpackets .ge. 160) 	;wait counter
+
+@command.ccsds.initiate_with_set_vr value=0		;change report value
+wait 160 until (p@command.ccsds.status.state .eq. ACTIVE)
+sho command.ccsds.status.state
+
+	if (p@command.ccsds.status.state .eq. ACTIVE) then
+		sho "FOP is ACTIVE"			
+		@command.ccsds.set_bypass value=0 	;disable bypass	
+               stat=/ci.noop
+	else 
+		sho "FOP not active"
+	endif 
+
+
+
+Return
+End proc

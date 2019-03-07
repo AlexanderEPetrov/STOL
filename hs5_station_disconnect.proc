@@ -1,0 +1,32 @@
+Proc AE350_hs5_station_disconnect
+
+;AE350 Lab1 hs5 station disconnect
+;none
+;Alex Petrov
+;usage example
+
+local stat=0                            ;variables initiated 
+
+	if (hstlmsrc.isstatic .eq. 1) then 
+		@command.ccsds.set_bypass value=1
+		stat=/sc.start_rts rtsid=2	
+		@command.ccsds.terminate
+	endif
+
+cfgmon clear hammersat_tlmstatus	;shutdown status monitor	
+Seqprt clear evs			
+
+Graph stop command			;shutdown galaxy commanding sockets
+
+Start cfdpterm				;shutdown CFDP engine
+
+Start create_sc_log(5,"STOP")	;Dump Galaxy support log send to alert sys
+
+Start gne_message_shutdown	;shutdown station message
+
+Start tlm_destroy(hs5)
+
+log pop
+
+Return
+Endproc

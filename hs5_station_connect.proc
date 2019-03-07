@@ -1,0 +1,57 @@
+Proc AE350_hs5_station_connect
+
+;AE350 Lab1 hs5stationconnect
+;none
+;Alex Petrov
+;usage example
+
+local var1=0, value=0, Stat=0, packets=0  ;variables initiated
+
+AC hs5                            ;Enable Galaxy telemetry connection to ground station
+
+start create_sc_log(5,"START")	  ;Provide time for dumping contents of support to the alerting system
+
+
+log > (concat("HS5_",p@gbl_gmtoff)) push  ;Create a Galaxy log file 
+
+
+graph start command 		  ;Start all UDP sockets & connect to Ground Station
+sho p@command.socket.status.state ;Read UDP socket status 
+wait 20 until (p@command.socket.status.state .eq. ASSOCIATED)
+
+sho p@command.ccsds.status.state  ;Read FOP state
+wait 20 until (p@command.ccsds.status.state .eq. INITIAL)
+
+cfgmon hammersat_tlmstatus        ;Enable Galaxy configuration monitor
+
+seqprt evs > evt 			  ;Enable Galaxy sequential print & dump s/c event msgs
+
+start cfdpstartup(hs5)		  ;start CFDP	
+
+start gne_message_setup		  ;configures galaxy to receive ASCII event status
+
+
+Page sentq,,,command.ccsds
+
+wait 300 until (hstlmSrc.totalpackets .ge. 160) ;Validate telem connection 160 packets before GNE 'LOCKED'
+
+	if (hstlmSrc.totalpackets .ge. 160) then
+		sho "LOCKED"
+		@command.ccsds.set_vs value=fswclcw.report_value 	;initiate FOP
+		@command.ccsds.initiate_with_clcw_check			;SYNC COUNTER
+		wait 20 until (p@command.ccsds.status.state .eq. ACTIVE)
+	else
+		start hs5_blindacq  ;<------ next file terminate FOP, bypass mode, verify  
+		sho "Blind_Acq"
+	endif   
+
+
+
+
+
+
+
+
+
+Return
+Endproc
